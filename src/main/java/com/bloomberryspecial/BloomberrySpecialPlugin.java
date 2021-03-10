@@ -7,7 +7,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
-import net.runelite.api.events.ItemDespawned;
+import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.events.WidgetClosed;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -16,7 +17,6 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
-import net.runelite.client.util.AsyncBufferedImage;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.http.api.RuneLiteAPI;
 import okhttp3.HttpUrl;
@@ -31,7 +31,6 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static net.runelite.api.VarPlayer.CURRENT_GE_ITEM;
 
@@ -42,6 +41,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 	private Client client;
 
 	@Inject
+    @Getter
 	private BloomberrySpecialConfig config;
 
 	@Inject
@@ -85,10 +85,10 @@ public class BloomberrySpecialPlugin extends Plugin {
 	private ItemModel itemModel = null;
 
 	@Subscribe
-	public void onVarbitChanged(net.runelite.api.events.VarbitChanged event) throws Exception {
+	public void onVarbitChanged(VarbitChanged event) throws Exception {
 		if(event.getIndex() == CURRENT_GE_ITEM.getId()) {
 			int currentItem = client.getVar(CURRENT_GE_ITEM);
-			if (itemManager.canonicalize(currentItem) != currentItem || currentItem == -1) {
+			if (itemManager.canonicalize(currentItem) != currentItem || currentItem <= 0) {
 			    itemModel = null;
 			    panel.updated();
 			    overlay.updated();
@@ -109,11 +109,18 @@ public class BloomberrySpecialPlugin extends Plugin {
 			final InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8);
 			Type type = new TypeToken<ArrayList<RLHistoricalDatapoint>>() {}.getType();
 			final List<RLHistoricalDatapoint> data = RuneLiteAPI.GSON.fromJson(reader, type);
-//			log.info("data: {}", data);
 
 			ItemComposition item = client.getItemDefinition(currentItem);
-			AsyncBufferedImage image = itemManager.getImage(currentItem);
-			itemModel = new ItemModel(item, data, image);
+			itemModel = new ItemModel(item, data, config);
+			panel.updated();
+			overlay.updated();
+		}
+	}
+
+	@Subscribe
+	public void onWidgetClosed(WidgetClosed widgetClosed) {
+		if (widgetClosed.getGroupId() == 465) {
+			itemModel = null;
 			panel.updated();
 			overlay.updated();
 		}
