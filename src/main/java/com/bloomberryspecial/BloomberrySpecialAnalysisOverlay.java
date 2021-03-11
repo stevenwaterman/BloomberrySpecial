@@ -1,7 +1,9 @@
 package com.bloomberryspecial;
 
+import com.bloomberryspecial.transformers.Daily;
+import com.bloomberryspecial.transformers.Margin;
 import com.bloomberryspecial.transformers.MovingAvg;
-import com.bloomberryspecial.transformers.Transformer;
+import com.bloomberryspecial.transformers.TransformerType;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -56,8 +58,39 @@ public class BloomberrySpecialAnalysisOverlay extends OverlayPanel {
             return;
         }
 
-        java.util.List<Transformer> analysisSelectors = Lists.newArrayList(new MovingAvg(config.analysisBaseData(), config.movingAvgWindow()));
-        graph = new GraphEntity(itemModel, plugin.getConfig(), Lists.newArrayList(config.analysisBaseData()), analysisSelectors, "Analysis", new Dimension(config.analysisGraphWidth(), config.analysisGraphHeight()));
+        if (config.transformerType() == TransformerType.MOVING_AVG) {
+            graph = new GraphEntity(
+                    itemModel,
+                    plugin.getConfig(),
+                    Lists.newArrayList(config.movingAvgBaseData()),
+                    Lists.newArrayList(new MovingAvg(config.movingAvgBaseData(), config.movingAvgWindow())),
+                    "Moving Average",
+                    new Dimension(config.analysisGraphWidth(), config.analysisGraphHeight()));
+        } else if (config.transformerType() == TransformerType.MARGIN) {
+            graph = new GraphEntity(
+                    itemModel,
+                    plugin.getConfig(),
+                    Lists.newArrayList(),
+                    Lists.newArrayList(new Margin()),
+                    "Price Margin",
+                    new Dimension(config.analysisGraphWidth(), config.analysisGraphHeight()));
+        } else if (config.transformerType() == TransformerType.DAILY) {
+            graph = new GraphEntity(
+                    itemModel,
+                    plugin.getConfig(),
+                    Lists.newArrayList(),
+                    Lists.newArrayList(new Daily(config.movingAvgBaseData())),
+                    "Daily",
+                    new Dimension(config.analysisGraphWidth(), config.analysisGraphHeight()));
+        } else if (config.transformerType() == TransformerType.WEEKLY) {
+            graph = new GraphEntity(
+                itemModel,
+                plugin.getConfig(),
+                Lists.newArrayList(),
+                Lists.newArrayList(new Daily(config.movingAvgBaseData())),
+                "Weekly",
+                new Dimension(config.analysisGraphWidth(), config.analysisGraphHeight()));
+        }
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.bloomberryspecial;
 
+import com.bloomberryspecial.transformers.TransformerType;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -251,12 +252,22 @@ public interface BloomberrySpecialConfig extends Config {
 	}
 
 	@ConfigItem(
-			keyName = "analysisBaseData",
-			name = "Analysis Base Data",
-			description = "The data that the analysis chart is based on",
+			keyName = "transformerType",
+			name = "Analysis Type",
+			description = "What kind of analysis to do",
 			secret = true
 	)
-	default DataSelector analysisBaseData() {
+	default TransformerType transformerType() {
+		return TransformerType.MOVING_AVG;
+	}
+
+	@ConfigItem(
+			keyName = "movingAvgBaseData",
+			name = "Moving Avg Base Data",
+			description = "The data that the moving avg chart is based on",
+			secret = true
+	)
+	default DataSelector movingAvgBaseData() {
 		return DataSelector.BUY_PRICE;
 	}
 

@@ -1,18 +1,14 @@
 package com.bloomberryspecial;
 
-import com.bloomberryspecial.transformers.MovingAvg;
-import com.bloomberryspecial.transformers.Transformer;
-import com.google.common.collect.Lists;
+import com.bloomberryspecial.transformers.TransformerType;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.PluginPanel;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 
 @Slf4j
 @Singleton
@@ -20,6 +16,7 @@ class BloomberrySpecialPanel extends PluginPanel {
     private final JCheckBox priceCheckbox;
     private final JCheckBox volumeCheckbox;
     private final JCheckBox analysisCheckbox;
+    private final JComboBox<TransformerType> transformerType;
     private final JComboBox<DataSelector> analysisBaseData;
     private final JSpinner movingAvgWindowSpinner;
 
@@ -42,11 +39,16 @@ class BloomberrySpecialPanel extends PluginPanel {
         add(volumeCheckbox);
         add(analysisCheckbox);
 
-        add(new JLabel("Analysis Base Data"));
+        transformerType = new JComboBox<>(TransformerType.values());
+        transformerType.setSelectedItem(config.transformerType());
+        transformerType.addActionListener(e -> plugin.setConfig("transformerType", getTransformerType()));
+        add(transformerType);
+
+        add(new JLabel("Moving Average Base Data"));
 
         analysisBaseData = new JComboBox<>(DataSelector.values());
-        analysisBaseData.setSelectedItem(config.analysisBaseData());
-        analysisBaseData.addActionListener(e -> plugin.setConfig("analysisBaseData", getAnalysisSelector()));
+        analysisBaseData.setSelectedItem(config.movingAvgBaseData());
+        analysisBaseData.addActionListener(e -> plugin.setConfig("movingAvgBaseData", getAnalysisSelector()));
         add(analysisBaseData);
 
         movingAvgWindowSpinner = new JSpinner(new SpinnerNumberModel(config.movingAvgWindow(), 1, null, 1));
@@ -60,6 +62,10 @@ class BloomberrySpecialPanel extends PluginPanel {
 
     private DataSelector getAnalysisSelector() {
         return analysisBaseData.getModel().getElementAt(analysisBaseData.getSelectedIndex());
+    }
+
+    private TransformerType getTransformerType() {
+        return transformerType.getModel().getElementAt(transformerType.getSelectedIndex());
     }
 }
 
