@@ -1,5 +1,6 @@
 package com.bloomberryspecial;
 
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -14,15 +15,14 @@ import java.util.Collections;
 @Singleton
 @Slf4j
 public class BloomberrySpecialVolumeOverlay extends OverlayPanel {
-    private final Client client;
-    private BloomberrySpecialPlugin plugin;
-    private BloomberrySpecialPanel bloomberrySpecialPanel;
+    private final BloomberrySpecialPlugin plugin;
+    private final BloomberrySpecialConfig config;
 
     @Inject
-    public BloomberrySpecialVolumeOverlay(Client client, BloomberrySpecialPlugin plugin, BloomberrySpecialPanel bloomberrySpecialPanel) {
-        this.client = client;
+    public BloomberrySpecialVolumeOverlay(BloomberrySpecialPlugin plugin, BloomberrySpecialConfig config) {
         this.plugin  = plugin;
-        this.bloomberrySpecialPanel = bloomberrySpecialPanel;
+        this.config = config;
+
         setLayer(OverlayLayer.ALWAYS_ON_TOP);
         setPosition(OverlayPosition.TOP_LEFT);
         panelComponent.setWrap(true);
@@ -34,6 +34,8 @@ public class BloomberrySpecialVolumeOverlay extends OverlayPanel {
     public void setPreferredSize(Dimension preferredSize) {
         if(graph != null) {
             graph.setPreferredSize(preferredSize);
+            plugin.setConfig("volumeGraphWidth", preferredSize.width);
+            plugin.setConfig("volumeGraphHeight", preferredSize.height);
         }
     }
 
@@ -54,13 +56,12 @@ public class BloomberrySpecialVolumeOverlay extends OverlayPanel {
             return;
         }
 
-        graph = new GraphEntity(itemModel, plugin.getConfig(), itemModel.getVolumeBounds(), itemModel.getVolumeMarks(), bloomberrySpecialPanel.getVolumeSelectors(), Collections.emptyList(), "Volume");
+        graph = new GraphEntity(itemModel, plugin.getConfig(), Lists.newArrayList(DataSelector.BUY_VOLUME, DataSelector.SELL_VOLUME), Collections.emptyList(), "Volume", new Dimension(config.volumeGraphWidth(), config.volumeGraphHeight()));
     }
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (graph != null && bloomberrySpecialPanel.isVolumeGraphEnabled()) panelComponent.getChildren().add(graph);
+        if (graph != null && config.showVolumeChart()) panelComponent.getChildren().add(graph);
         return super.render(graphics);
     }
 }
-

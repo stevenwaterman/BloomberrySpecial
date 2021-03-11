@@ -4,15 +4,26 @@ import lombok.Value;
 
 @Value
 public class Range {
-    int min;
-    int max;
+    int minX;
+    int maxX;
+    int minY;
+    int maxY;
 
-    public int getRange() {
-        return max - min;
+    public int getRangeX() {
+        return maxX - minX;
     }
 
-    public double getFraction(int value) {
-        int delta = value - min;
-        return (double) delta / getRange();
+    public int getRangeY() {
+        return maxY - minY;
+    }
+
+    public double getFractionX(double value) {
+        final double delta = value - minX;
+        return delta / getRangeX();
+    }
+
+    public double getFractionY(double value) {
+        final double delta = value - minY;
+        return delta / getRangeY();
     }
 }

@@ -11,21 +11,61 @@ import java.awt.*;
 public interface BloomberrySpecialConfig extends Config {
 	@ConfigItem(
 			position = 0,
-			keyName = "graphWidth",
-			name = "Graph Width",
-			description = "Configures the width of the graph."
+			keyName = "priceGraphWidth",
+			name = "Price Graph Width",
+			description = "Configures the width of the price graph."
 	)
-	default int graphWidth() {
+	default int priceGraphWidth() {
 		return 300;
 	}
 
 	@ConfigItem(
 			position = 1,
-			keyName = "graphHeight",
-			name = "Graph Height",
-			description = "Configures the height of the graph."
+			keyName = "priceGraphHeight",
+			name = "Price Graph Height",
+			description = "Configures the height of the price graph."
 	)
-	default int graphHeight() {
+	default int priceGraphHeight() {
+		return 200;
+	}
+
+	@ConfigItem(
+			position = 0,
+			keyName = "volumeGraphWidth",
+			name = "Volume Graph Width",
+			description = "Configures the width of the volume graph."
+	)
+	default int volumeGraphWidth() {
+		return 300;
+	}
+
+	@ConfigItem(
+			position = 1,
+			keyName = "volumeGraphHeight",
+			name = "Volume Graph Height",
+			description = "Configures the height of the volume graph."
+	)
+	default int volumeGraphHeight() {
+		return 200;
+	}
+
+	@ConfigItem(
+			position = 0,
+			keyName = "analysisGraphWidth",
+			name = "Analysis Graph Width",
+			description = "Configures the width of the analysis graph."
+	)
+	default int analysisGraphWidth() {
+		return 300;
+	}
+
+	@ConfigItem(
+			position = 1,
+			keyName = "analysisGraphHeight",
+			name = "Analysis Graph Height",
+			description = "Configures the height of the analysis graph."
+	)
+	default int analysisGraphHeight() {
 		return 200;
 	}
 
@@ -178,5 +218,54 @@ public interface BloomberrySpecialConfig extends Config {
 	)
 	default int markWidth() {
 		return 5;
+	}
+
+	@ConfigItem(
+			keyName = "showPriceChart",
+			name = "Show Price Chart",
+			description = "Whether to show the price chart",
+			secret = true
+	)
+	default boolean showPriceChart() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "showVolumeChart",
+			name = "Show Volume Chart",
+			description = "Whether to show the volume chart",
+			secret = true
+	)
+	default boolean showVolumeChart() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "showAnalysisChart",
+			name = "Show Analysis Chart",
+			description = "Whether to show the analysis chart",
+			secret = true
+	)
+	default boolean showAnalysis() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "analysisBaseData",
+			name = "Analysis Base Data",
+			description = "The data that the analysis chart is based on",
+			secret = true
+	)
+	default DataSelector analysisBaseData() {
+		return DataSelector.BUY_PRICE;
+	}
+
+	@ConfigItem(
+			keyName = "movingAvgWindow",
+			name = "Moving Avg Window",
+			description = "The number of datapoints in the moving average window."
+	)
+	default int movingAvgWindow() {
+		return 25;
 	}
 }

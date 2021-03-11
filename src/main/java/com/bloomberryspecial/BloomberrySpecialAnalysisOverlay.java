@@ -1,28 +1,28 @@
 package com.bloomberryspecial;
 
+import com.bloomberryspecial.transformers.MovingAvg;
+import com.bloomberryspecial.transformers.Transformer;
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 
 import java.awt.*;
-import java.util.Collections;
 
 @Singleton
 @Slf4j
 public class BloomberrySpecialAnalysisOverlay extends OverlayPanel {
-    private final Client client;
-    private BloomberrySpecialPlugin plugin;
-    private BloomberrySpecialPanel bloomberrySpecialPanel;
+    private final BloomberrySpecialPlugin plugin;
+    private final BloomberrySpecialConfig config;
 
     @Inject
-    public BloomberrySpecialAnalysisOverlay(Client client, BloomberrySpecialPlugin plugin, BloomberrySpecialPanel bloomberrySpecialPanel) {
-        this.client = client;
+    public BloomberrySpecialAnalysisOverlay(BloomberrySpecialPlugin plugin, BloomberrySpecialConfig config) {
         this.plugin  = plugin;
-        this.bloomberrySpecialPanel = bloomberrySpecialPanel;
+        this.config = config;
+
         setLayer(OverlayLayer.ALWAYS_ON_TOP);
         setPosition(OverlayPosition.TOP_LEFT);
         panelComponent.setWrap(true);
@@ -34,6 +34,8 @@ public class BloomberrySpecialAnalysisOverlay extends OverlayPanel {
     public void setPreferredSize(Dimension preferredSize) {
         if(graph != null) {
             graph.setPreferredSize(preferredSize);
+            plugin.setConfig("analysisGraphWidth", preferredSize.width);
+            plugin.setConfig("analysisGraphHeight", preferredSize.height);
         }
     }
 
@@ -54,22 +56,13 @@ public class BloomberrySpecialAnalysisOverlay extends OverlayPanel {
             return;
         }
 
-        java.util.List<Integer> marks;
-        Range bounds;
-        if (bloomberrySpecialPanel.isAnalysingPrices()) {
-            marks = itemModel.getPriceMarks();
-            bounds = itemModel.getPriceBounds();
-        } else {
-            marks = itemModel.getVolumeMarks();
-            bounds = itemModel.getVolumeBounds();
-        }
-        graph = new GraphEntity(itemModel, plugin.getConfig(), bounds, marks, bloomberrySpecialPanel.getAnalysisSelectors(), bloomberrySpecialPanel.getAnalysisTransformers(), "Analysis");
+        java.util.List<Transformer> analysisSelectors = Lists.newArrayList(new MovingAvg(config.analysisBaseData(), config.movingAvgWindow()));
+        graph = new GraphEntity(itemModel, plugin.getConfig(), Lists.newArrayList(config.analysisBaseData()), analysisSelectors, "Analysis", new Dimension(config.analysisGraphWidth(), config.analysisGraphHeight()));
     }
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (graph != null && bloomberrySpecialPanel.isAnalysisGraphEnabled()) panelComponent.getChildren().add(graph);
+        if (graph != null && config.showAnalysis()) panelComponent.getChildren().add(graph);
         return super.render(graphics);
     }
 }
-

@@ -67,6 +67,9 @@ public class BloomberrySpecialPlugin extends Plugin {
 	@Inject
 	private OverlayManager overlayManager;
 
+	@Inject
+	private ConfigManager configManager;
+
 	private final OkHttpClient httpClient = new OkHttpClient.Builder()
 			.addNetworkInterceptor(chain ->
 				chain.proceed(chain.request()
@@ -77,7 +80,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 
 	@Override
 	protected void startUp() {
-		final BufferedImage icon = ImageUtil.getResourceStreamFromClass(getClass(), "blurberry_special.png");
+		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "blurberry_special.png");
 		final NavigationButton button = NavigationButton.builder()
 				.tooltip("Bloomberry Special")
 				.priority(3)
@@ -94,7 +97,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 	@Getter
 	private ItemModel itemModel = null;
 
-	private void updated() {
+	public void updated() {
 		panel.updated();
 		priceOverlay.updated();
 		volumeOverlay.updated();
@@ -127,7 +130,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 			final List<RLHistoricalDatapoint> data = RuneLiteAPI.GSON.fromJson(reader, type);
 
 			ItemComposition item = client.getItemDefinition(currentItem);
-			itemModel = new ItemModel(item, data, config);
+			itemModel = new ItemModel(item, data);
 			updated();
 		}
 	}
@@ -143,5 +146,10 @@ public class BloomberrySpecialPlugin extends Plugin {
 	@Provides
 	BloomberrySpecialConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(BloomberrySpecialConfig.class);
+	}
+
+	public void setConfig(String key, Object value) {
+		configManager.setConfiguration("BloomberrySpecial", key, value);
+		updated();
 	}
 }

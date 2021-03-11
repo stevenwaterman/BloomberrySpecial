@@ -20,11 +20,11 @@ public enum DataSelector {
     @Getter
     private final boolean isZeroValid;
 
-    public Integer getY(RLHistoricalDatapoint datapoint) {
-        return yValueExtractor.apply(datapoint);
+    public Double getY(RLHistoricalDatapoint datapoint) {
+        return yValueExtractor.apply(datapoint).doubleValue();
     }
 
-    public List<Pair<Integer, Integer>> getData(ItemModel itemModel) {
+    public List<Pair<Integer, Double>> getData(ItemModel itemModel) {
         return itemModel.getData().get(this);
     }
 
