@@ -143,6 +143,14 @@ public class BloomberrySpecialPlugin extends Plugin {
 		}
 	}
 
+	@Override
+	public void shutDown()
+	{
+		overlayManager.remove(priceOverlay);
+		overlayManager.remove(volumeOverlay);
+		overlayManager.remove(analysisOverlay);
+	}
+
 	@Provides
 	BloomberrySpecialConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(BloomberrySpecialConfig.class);
