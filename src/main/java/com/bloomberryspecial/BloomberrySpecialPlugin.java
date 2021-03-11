@@ -3,6 +3,7 @@ package com.bloomberryspecial;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -34,6 +35,7 @@ import java.util.List;
 
 import static net.runelite.api.VarPlayer.CURRENT_GE_ITEM;
 
+@Singleton
 @Slf4j
 @PluginDescriptor(name = "Bloomberry Special")
 public class BloomberrySpecialPlugin extends Plugin {
@@ -45,10 +47,16 @@ public class BloomberrySpecialPlugin extends Plugin {
 	private BloomberrySpecialConfig config;
 
 	@Inject
-	private BloomberrySpecialOverlay overlay;
+	private BloomberrySpecialPanel panel;
 
 	@Inject
-	private BloomberrySpecialPanel panel;
+	private BloomberrySpecialPriceOverlay priceOverlay;
+
+	@Inject
+	private BloomberrySpecialVolumeOverlay volumeOverlay;
+
+	@Inject
+	private BloomberrySpecialAnalysisOverlay analysisOverlay;
 
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -78,11 +86,20 @@ public class BloomberrySpecialPlugin extends Plugin {
 				.build();
 
 		clientToolbar.addNavigation(button);
-		overlayManager.add(overlay);
+		overlayManager.add(priceOverlay);
+		overlayManager.add(volumeOverlay);
+		overlayManager.add(analysisOverlay);
 	}
 
 	@Getter
 	private ItemModel itemModel = null;
+
+	private void updated() {
+		panel.updated();
+		priceOverlay.updated();
+		volumeOverlay.updated();
+		analysisOverlay.updated();
+	}
 
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event) throws Exception {
@@ -90,8 +107,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 			int currentItem = client.getVar(CURRENT_GE_ITEM);
 			if (itemManager.canonicalize(currentItem) != currentItem || currentItem <= 0) {
 			    itemModel = null;
-			    panel.updated();
-			    overlay.updated();
+			    updated();
 			    return;
 			}
 
@@ -112,8 +128,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 
 			ItemComposition item = client.getItemDefinition(currentItem);
 			itemModel = new ItemModel(item, data, config);
-			panel.updated();
-			overlay.updated();
+			updated();
 		}
 	}
 
@@ -121,8 +136,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 	public void onWidgetClosed(WidgetClosed widgetClosed) {
 		if (widgetClosed.getGroupId() == 465) {
 			itemModel = null;
-			panel.updated();
-			overlay.updated();
+			updated();
 		}
 	}
 

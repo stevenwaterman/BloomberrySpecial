@@ -1,5 +1,6 @@
 package com.bloomberryspecial.transformers;
 
+import com.bloomberryspecial.DataSelector;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
@@ -8,15 +9,15 @@ import java.util.List;
 public class MovingAvg extends Transformer {
     private final int windowSize;
 
-    public MovingAvg(List<Pair<Integer, Integer>> input, int windowSize) {
-        super(input);
+    public MovingAvg(DataSelector selector, int windowSize) {
+        super(selector);
         this.windowSize = windowSize;
     }
 
     @Override
     protected List<Pair<Integer, Integer>> transform(List<Pair<Integer, Integer>> data) {
-        int sum = 0;
-        int count = 0;
+        long sum = 0;
+        long count = 0;
 
         final List<Pair<Integer, Integer>> output = new ArrayList<>();
         for (int i = 0; i < data.size(); i++) {
@@ -27,7 +28,8 @@ public class MovingAvg extends Transformer {
                 count--;
                 sum -= data.get(i - windowSize).getRight();
             }
-            output.add(Pair.of(datapoint.getLeft(), sum / count));
+            int avg = (int) (sum / count);
+            output.add(Pair.of(datapoint.getLeft(), avg));
         }
 
         return output;

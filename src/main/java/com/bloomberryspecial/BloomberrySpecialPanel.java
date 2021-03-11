@@ -1,20 +1,25 @@
 package com.bloomberryspecial;
 
+import com.bloomberryspecial.transformers.MovingAvg;
+import com.bloomberryspecial.transformers.Transformer;
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.PluginPanel;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
+@Singleton
 class BloomberrySpecialPanel extends PluginPanel {
-//    private static final Color ODD_ROW = new Color(44, 44, 44);
+    private final JCheckBox priceCheckbox;
+    private final JCheckBox volumeCheckbox;
+    private final JCheckBox analysisCheckbox;
+    //    private static final Color ODD_ROW = new Color(44, 44, 44);
 //
 //    private final JPanel listContainer = new JPanel();
 //
@@ -31,10 +36,53 @@ class BloomberrySpecialPanel extends PluginPanel {
     @Inject
     BloomberrySpecialPanel(BloomberrySpecialPlugin plugin) {
         this.plugin = plugin;
+
+        setBorder(null);
+        setBackground(Color.WHITE);
+        setLayout(new DynamicGridLayout(10, 1));
+
+        priceCheckbox = new JCheckBox("Price Graph", true);
+        volumeCheckbox = new JCheckBox("Volume Graph", true);
+        analysisCheckbox = new JCheckBox("Analysis Graph", true);
+        add(priceCheckbox);
+        add(volumeCheckbox);
+        add(analysisCheckbox);
     }
 
     public void updated() {
 
+    }
+
+    public boolean isAnalysingPrices() {
+        return true;
+    }
+
+    public boolean isPriceGraphEnabled() {
+        return priceCheckbox.isSelected();
+    }
+
+    public boolean isVolumeGraphEnabled() {
+        return volumeCheckbox.isSelected();
+    }
+
+    public boolean isAnalysisGraphEnabled() {
+        return analysisCheckbox.isSelected();
+    }
+
+    public List<DataSelector> getAnalysisSelectors() {
+        return Lists.newArrayList();
+    }
+
+    public List<Transformer> getAnalysisTransformers() {
+        return Lists.newArrayList(new MovingAvg(DataSelector.BUY_PRICE, 25));
+    }
+
+    public List<DataSelector> getPriceSelectors() {
+        return Lists.newArrayList(DataSelector.BUY_PRICE, DataSelector.SELL_PRICE);
+    }
+
+    public List<DataSelector> getVolumeSelectors() {
+        return Lists.newArrayList(DataSelector.BUY_VOLUME, DataSelector.SELL_VOLUME);
     }
 
 //        setBorder(null);

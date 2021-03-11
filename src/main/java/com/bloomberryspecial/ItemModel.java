@@ -1,6 +1,5 @@
 package com.bloomberryspecial;
 
-import com.google.common.collect.Maps;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -8,7 +7,6 @@ import net.runelite.api.ItemComposition;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -86,21 +84,6 @@ public class ItemModel {
             marks.add(i); // 6800, 7200, ..., 9600, 10000
         }
         return marks;
-    }
-
-    @Value
-    public static class Range {
-        int min;
-        int max;
-
-        public int getRange() {
-            return max - min;
-        }
-
-        public double getFraction(int value) {
-            int delta = value - min;
-            return (double) delta / getRange();
-        }
     }
 
     private static List<Pair<Integer, Integer>> createData(List<RLHistoricalDatapoint> historicalData, DataSelector selector) {

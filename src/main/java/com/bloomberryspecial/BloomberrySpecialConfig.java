@@ -16,7 +16,7 @@ public interface BloomberrySpecialConfig extends Config {
 			description = "Configures the width of the graph."
 	)
 	default int graphWidth() {
-		return 600;
+		return 300;
 	}
 
 	@ConfigItem(
@@ -26,7 +26,7 @@ public interface BloomberrySpecialConfig extends Config {
 			description = "Configures the height of the graph."
 	)
 	default int graphHeight() {
-		return 250;
+		return 200;
 	}
 
 	@ConfigItem(
@@ -117,7 +117,7 @@ public interface BloomberrySpecialConfig extends Config {
 			secret = true
 	)
 	default int marginTop() {
-		return 10;
+		return 20;
 	}
 
 	@ConfigItem(
@@ -157,7 +157,7 @@ public interface BloomberrySpecialConfig extends Config {
 			secret = true
 	)
 	default int pointSize() {
-		return 2;
+		return 4;
 	}
 
 	@ConfigItem(
