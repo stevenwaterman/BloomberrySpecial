@@ -1,9 +1,7 @@
 package com.bloomberryspecial;
 
-import com.bloomberryspecial.transformers.Transformer;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.overlay.components.PanelComponent;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.awt.*;
 import java.time.Instant;
@@ -12,23 +10,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Slf4j
 public class GraphEntity extends PanelComponent {
-    private final ItemModel itemModel;
     private final BloomberrySpecialConfig config;
-    private final List<DataSelector> dataSelectors;
-    private final List<Transformer> transformers;
+    private final List<DataSeries> lines;
     private final String title;
 
-    public GraphEntity(ItemModel itemModel, BloomberrySpecialConfig config, List<DataSelector> dataSelectors, List<Transformer> transformers, String title, Dimension preferredSize) {
-        this.itemModel = itemModel;
+    public GraphEntity(BloomberrySpecialConfig config, List<DataSeries> lines, String title, Dimension preferredSize) {
         this.config = config;
-        this.dataSelectors = dataSelectors;
-        this.transformers = transformers;
+        this.lines = lines;
         this.title = title;
-
         setPreferredSize(preferredSize);
     }
 
@@ -45,23 +37,22 @@ public class GraphEntity extends PanelComponent {
 
         // Background
         graphics.setColor(backgroundColor);
-        graphics.fillRect(0, 0, super.getPreferredSize().width, super.getPreferredSize().height);
+        graphics.fillRect(0, 0, getPreferredSize().width, getPreferredSize().height);
 
         // Border
         graphics.setColor(config.graphColor());
         graphics.setStroke(new BasicStroke(2f));
-        graphics.drawRect(0, 0, super.getPreferredSize().width, super.getPreferredSize().height);
+        graphics.drawRect(0, 0, getPreferredSize().width, getPreferredSize().height);
         graphics.drawRect(config.marginLeft(), config.marginTop(), contentWidth(), contentHeight());
 
         // title
         FontMetrics metrics = graphics.getFontMetrics(graphics.getFont());
-        graphics.drawString(title, super.getPreferredSize().width / 2 - metrics.stringWidth(title) / 2, 2 + metrics.getHeight());
+        graphics.drawString(title, getPreferredSize().width / 2 - metrics.stringWidth(title) / 2, 2 + metrics.getHeight());
 
         // Calculate bounds & marks
-        Range bounds = Stream.concat(
-                dataSelectors.stream().flatMap(selector -> selector.getData(itemModel).stream()),
-                transformers.stream().flatMap(transformer -> transformer.getData(itemModel).stream())
-        ).reduce(initialPair, GraphEntity::applyRange, GraphEntity::combineRange);
+        Range bounds = lines.stream()
+                .flatMap(line -> line.getData().stream())
+                .reduce(Range.SMALLEST, Range::withDataPoint, Range::withRange);
         List<Integer> xMarks = createMarks(bounds.getMinX(), bounds.getMaxX(), contentWidth() / 100);
         List<Integer> yMarks = createMarks(bounds.getMinY(), bounds.getMaxY(), contentHeight() / 30);
 
@@ -69,8 +60,12 @@ public class GraphEntity extends PanelComponent {
         xMarks.forEach(mark -> {
             int x = getXLocation(bounds.getFractionX(mark));
 
-            String label = Instant.ofEpochSecond(mark).atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("d MMM HH:mm"));
-            graphics.drawString(label, x - metrics.stringWidth(label) + 10, super.getPreferredSize().height - 2);
+            String pattern = "HH:mm";
+            if (bounds.getRangeX() >= 365 * 24 * 3600) pattern = "yy " + pattern;
+            if (bounds.getRangeX() >= 28 * 24 * 3600) pattern = "MMM " + pattern;
+            if (bounds.getRangeX() > 24 * 3600) pattern = "d " + pattern;
+            String label = Instant.ofEpochSecond(mark).atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern(pattern));
+            graphics.drawString(label, x - metrics.stringWidth(label) + 10, getPreferredSize().height - 2);
 
             graphics.setStroke(new BasicStroke(2f));
             graphics.drawLine(x, contentEndBottom(), x, contentEndBottom() + config.markHeight());
@@ -83,10 +78,9 @@ public class GraphEntity extends PanelComponent {
         drawYAxisMarks(graphics, yMarks, bounds);
 
         // graph line
-        dataSelectors.forEach(selector -> drawGraphLine(graphics, selector, bounds));
-        transformers.forEach(transformer -> drawGraphLine(graphics, transformer.getData(itemModel), bounds, config.analysisColor(), 2f, config.analysisDrawStyle()));
+        lines.forEach(line -> drawGraphLine(graphics, line, bounds));
 
-        return new Dimension(super.getPreferredSize().width, super.getPreferredSize().height);
+        return new Dimension(getPreferredSize().width, getPreferredSize().height);
     }
 
     private void drawYAxisMarks(Graphics2D graphics, List<Integer> marks, Range bounds) {
@@ -94,15 +88,15 @@ public class GraphEntity extends PanelComponent {
         marks.forEach(mark -> {
             FontMetrics metrics = graphics.getFontMetrics(graphics.getFont());
             String label = mark.toString();
-            if (mark > 1E9) {
+            if (Math.abs(mark) > 1E9) {
                 int millions = mark / 1000000;
                 double billions = (double) millions / 1000;
                 label = billions + "b";
-            } else if (mark > 1E6) {
+            } else if (Math.abs(mark) > 1E6) {
                 int thousands = mark / 1000;
                 double millions = (double) thousands / 1000;
                 label = millions + "m";
-            } else if (mark > 1E3) {
+            } else if (Math.abs(mark) > 1E4) {
                 double thousands = (double) mark / 1000;
                 label = thousands + "k";
             }
@@ -118,23 +112,19 @@ public class GraphEntity extends PanelComponent {
         });
     }
 
-    private void drawGraphLine(Graphics2D graphics, DataSelector selector, Range bounds) {
-        drawGraphLine(graphics, selector.getData(itemModel), bounds, selector.getColor(config), 1f, config.drawStyle());
-    }
-
-    private void drawGraphLine(Graphics2D graphics, java.util.List<Pair<Integer, Double>> data, Range bounds, Color color, float strokeWidth, DrawStyle drawStyle) {
-        graphics.setStroke(new BasicStroke(strokeWidth));
+    private void drawGraphLine(Graphics2D graphics, DataSeries line, Range bounds) {
+        graphics.setStroke(line.getStroke());
+        graphics.setColor(line.getColor());
 
         Integer lastX = null;
         Integer lastY = null;
 
-        for (Pair<Integer, Double> point : data) {
-            int x = getXLocation(bounds.getFractionX(point.getLeft()));
-            int y = getYLocation(bounds.getFractionY(point.getRight()));
+        for (DataPoint point : line.getData()) {
+            int x = getXLocation(bounds.getFractionX(point.getX()));
+            int y = getYLocation(bounds.getFractionY(point.getY()));
 
-            graphics.setColor(color);
-            if (drawStyle.isPointsEnabled()) graphics.fillOval(x - config.pointSize() / 2, y - config.pointSize() / 2, config.pointSize(), config.pointSize());
-            if (drawStyle.isLinesEnabled() && lastX != null) graphics.drawLine(lastX, lastY, x, y);
+            if (line.getDrawStyle().isPointsEnabled()) graphics.fillOval(x - config.pointSize() / 2, y - config.pointSize() / 2, config.pointSize(), config.pointSize());
+            if (line.getDrawStyle().isLinesEnabled() && lastX != null) graphics.drawLine(lastX, lastY, x, y);
 
             lastX = x;
             lastY = y;
@@ -142,19 +132,19 @@ public class GraphEntity extends PanelComponent {
     }
 
     private int contentWidth() {
-        return super.getPreferredSize().width - config.marginLeft() - config.marginRight();
+        return getPreferredSize().width - config.marginLeft() - config.marginRight();
     }
 
     private int contentHeight() {
-        return super.getPreferredSize().height - config.marginTop() - config.marginBottom();
+        return getPreferredSize().height - config.marginTop() - config.marginBottom();
     }
 
     private int contentEndRight() {
-        return super.getPreferredSize().width - config.marginRight();
+        return getPreferredSize().width - config.marginRight();
     }
 
     private int contentEndBottom() {
-        return super.getPreferredSize().height - config.marginBottom();
+        return getPreferredSize().height - config.marginBottom();
     }
 
     private int getXLocation(double graphFraction) {
@@ -163,24 +153,6 @@ public class GraphEntity extends PanelComponent {
 
     private int getYLocation(double graphFraction) {
         return (int) (contentEndBottom() - graphFraction * contentHeight());
-    }
-
-    private static final Range initialPair = new Range(Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE);
-
-    private static Range combineRange(Range pair1, Range pair2) {
-        return new Range(
-                Math.min(pair1.getMinX(), pair2.getMinX()),
-                Math.max(pair1.getMaxX(), pair2.getMaxX()),
-                Math.min(pair1.getMinY(), pair2.getMinY()),
-                Math.max(pair1.getMaxY(), pair2.getMaxY()));
-    }
-
-    private static Range applyRange(Range acc, Pair<Integer, Double> elem) {
-        return new Range(
-                Math.min(acc.getMinX(), elem.getLeft()),
-                Math.max(acc.getMaxX(), elem.getLeft()),
-                (int) Math.floor(Math.min(acc.getMinY(), elem.getRight())),
-                (int) Math.ceil(Math.max(acc.getMaxY(), elem.getRight())));
     }
 
     private static List<Integer> createMarks(int min, int max, int desiredMarkCount) {

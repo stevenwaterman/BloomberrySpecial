@@ -7,6 +7,7 @@ import com.google.inject.Singleton;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetClosed;
@@ -32,6 +33,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import static net.runelite.api.VarPlayer.CURRENT_GE_ITEM;
 
@@ -49,14 +51,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 	@Inject
 	private BloomberrySpecialPanel panel;
 
-	@Inject
-	private BloomberrySpecialPriceOverlay priceOverlay;
-
-	@Inject
-	private BloomberrySpecialVolumeOverlay volumeOverlay;
-
-	@Inject
-	private BloomberrySpecialAnalysisOverlay analysisOverlay;
+	private List<BloomberrySpecialGraphOverlay> overlays = new ArrayList<>();
 
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -89,19 +84,21 @@ public class BloomberrySpecialPlugin extends Plugin {
 				.build();
 
 		clientToolbar.addNavigation(button);
-		overlayManager.add(priceOverlay);
-		overlayManager.add(volumeOverlay);
-		overlayManager.add(analysisOverlay);
+	}
+
+	public Runnable addGraph(Function<ItemModel, List<DataSeries>> generator, String name) {
+		BloomberrySpecialGraphOverlay overlay = new BloomberrySpecialGraphOverlay(this, config, generator, name);
+		overlays.add(overlay);
+		overlayManager.add(overlay);
+		overlay.updated();
+		return () -> overlayManager.remove(overlay);
 	}
 
 	@Getter
 	private ItemModel itemModel = null;
 
 	public void updated() {
-		panel.updated();
-		priceOverlay.updated();
-		volumeOverlay.updated();
-		analysisOverlay.updated();
+		overlays.forEach(BloomberrySpecialGraphOverlay::updated);
 	}
 
 	@Subscribe
@@ -144,11 +141,8 @@ public class BloomberrySpecialPlugin extends Plugin {
 	}
 
 	@Override
-	public void shutDown()
-	{
-		overlayManager.remove(priceOverlay);
-		overlayManager.remove(volumeOverlay);
-		overlayManager.remove(analysisOverlay);
+	public void shutDown() {
+		overlayManager.clear();
 	}
 
 	@Provides

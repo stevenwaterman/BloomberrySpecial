@@ -188,7 +188,7 @@ public interface BloomberrySpecialConfig extends Config {
 			secret = true
 	)
 	default int marginLeft() {
-		return 50;
+		return 60;
 	}
 
 	@ConfigItem(

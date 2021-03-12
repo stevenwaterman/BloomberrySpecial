@@ -1,6 +1,7 @@
 package com.bloomberryspecial;
 
-import com.bloomberryspecial.transformers.TransformerType;
+import com.bloomberryspecial.transformers.*;
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -9,63 +10,101 @@ import net.runelite.client.ui.PluginPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
 @Slf4j
 @Singleton
 class BloomberrySpecialPanel extends PluginPanel {
-    private final JCheckBox priceCheckbox;
-    private final JCheckBox volumeCheckbox;
-    private final JCheckBox analysisCheckbox;
-    private final JComboBox<TransformerType> transformerType;
-    private final JComboBox<DataSelector> analysisBaseData;
-    private final JSpinner movingAvgWindowSpinner;
+    private BloomberrySpecialPlugin plugin;
 
     @Inject
     BloomberrySpecialPanel(BloomberrySpecialPlugin plugin, BloomberrySpecialConfig config) {
+        setLayout(new DynamicGridLayout(0, 2));
+        this.plugin = plugin;
         setBorder(null);
-        setBackground(Color.WHITE);
-        setLayout(new DynamicGridLayout(10, 1));
 
-        priceCheckbox = new JCheckBox("Price Graph", config.showPriceChart());
-        priceCheckbox.addChangeListener(e -> plugin.setConfig("showPriceChart", priceCheckbox.isSelected()));
+        new Checkbox(this, "Price", false, itemModel -> Lists.newArrayList(
+            new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), config.buyColor(), new BasicStroke(1f), DrawStyle.LINE),
+            new DataSeries("Sell Price", DataSelector.SELL_PRICE.getData(itemModel), config.sellColor(), new BasicStroke(1f), DrawStyle.LINE)
+        ), "Shows the buy and sell price of the item over time");
 
-        volumeCheckbox = new JCheckBox("Volume Graph", config.showVolumeChart());
-        volumeCheckbox.addChangeListener(e -> plugin.setConfig("showVolumeChart", volumeCheckbox.isSelected()));
+        new Checkbox(this, "Volume", false, itemModel -> Lists.newArrayList(
+            new DataSeries("Buy Volume", DataSelector.BUY_VOLUME.getData(itemModel), config.buyColor(), new BasicStroke(1f), DrawStyle.LINE),
+            new DataSeries("Sell Volume", DataSelector.SELL_VOLUME.getData(itemModel), config.sellColor(), new BasicStroke(1f), DrawStyle.LINE)
+        ), "Shows the buy and sell volume of the item over time");
 
-        analysisCheckbox = new JCheckBox("Analysis Graph", config.showAnalysis());
-        analysisCheckbox.addChangeListener(e -> plugin.setConfig("showAnalysisChart", analysisCheckbox.isSelected()));
+        new Checkbox(this, "Margin", false, itemModel -> {
+            DataSeries buyPrice = new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), config.buyColor(), new BasicStroke(1f), DrawStyle.LINE);
+            DataSeries sellPrice = new DataSeries("Sell Price", DataSelector.SELL_PRICE.getData(itemModel), config.sellColor(), new BasicStroke(1f), DrawStyle.LINE);
+            List<DataSeries> margin = new Subtract().getData(buyPrice, sellPrice);
+            List<DataSeries> movingAvg = new MovingAvg(25).getData(margin);
+            List<DataSeries> emphasise = new Emphasise().getData(movingAvg);
+            List<DataSeries> display = new ArrayList<>();
+            display.addAll(margin);
+            display.addAll(emphasise);
+            return display;
+        }, "Shows the margin between the buy and sell prices over time");
 
-        add(priceCheckbox);
-        add(volumeCheckbox);
-        add(analysisCheckbox);
+        new Checkbox(this, "Daily", false, itemModel -> {
+            DataSeries buyPrice = new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), config.buyColor(), new BasicStroke(1f), DrawStyle.POINTS);
+            List<DataSeries> removedTrend = new NormaliseTrend().getData(buyPrice);
+            List<DataSeries> daily = new Modulo(Modulo.ModuloPeriod.DAY).getData(removedTrend);
+            List<DataSeries> normalised = new Every(new NormalisePercentage()).getData(daily);
+            List<DataSeries> movingAvg = new Every(new MovingAvg(25)).getData(normalised);
+            List<DataSeries> combine = new CombineX().getData(movingAvg);
+            List<DataSeries> emphasise = new Emphasise().getData(combine);
+            List<DataSeries> display = new ArrayList<>();
+            display.addAll(normalised);
+            display.addAll(emphasise);
+            return display;
+        }, "Shows the buy price (%) vs time of day");
 
-        transformerType = new JComboBox<>(TransformerType.values());
-        transformerType.setSelectedItem(config.transformerType());
-        transformerType.addActionListener(e -> plugin.setConfig("transformerType", getTransformerType()));
-        add(transformerType);
+        new Checkbox(this, "Weekly", false, itemModel -> {
+            DataSeries buyPrice = new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), config.buyColor(), new BasicStroke(1f), DrawStyle.POINTS);
+            List<DataSeries> removedTrend = new NormaliseTrend().getData(buyPrice);
+            List<DataSeries> daily = new Modulo(Modulo.ModuloPeriod.WEEK).getData(removedTrend);
+            List<DataSeries> normalised = new Every(new NormalisePercentage()).getData(daily);
+            List<DataSeries> movingAvg = new Every(new MovingAvg(25)).getData(normalised);
+            List<DataSeries> combine = new CombineX().getData(movingAvg);
+            List<DataSeries> emphasise = new Emphasise().getData(combine);
+            List<DataSeries> display = new ArrayList<>();
+            display.addAll(normalised);
+            display.addAll(emphasise);
+            return display;
+        }, "Shows the buy price (%) vs day of week");
 
-        add(new JLabel("Moving Average Base Data"));
-
-        analysisBaseData = new JComboBox<>(DataSelector.values());
-        analysisBaseData.setSelectedItem(config.movingAvgBaseData());
-        analysisBaseData.addActionListener(e -> plugin.setConfig("movingAvgBaseData", getAnalysisSelector()));
-        add(analysisBaseData);
-
-        movingAvgWindowSpinner = new JSpinner(new SpinnerNumberModel(config.movingAvgWindow(), 1, null, 1));
-        movingAvgWindowSpinner.addChangeListener(e -> plugin.setConfig("movingAvgWindow", movingAvgWindowSpinner.getValue()));
-        add(movingAvgWindowSpinner);
+        new Checkbox(this, "Abnormality", false, itemModel -> {
+            DataSeries buyPrice = new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), config.buyColor(), new BasicStroke(1f), DrawStyle.POINTS);
+            List<DataSeries> removedTrend = new NormaliseTrend().getData(buyPrice);
+            List<DataSeries> normalised = new NormalisePercentage().getData(removedTrend);
+            List<DataSeries> standardError = new StandardError().getData(normalised);
+            List<DataSeries> emphasise = new Every(new Emphasise()).getData(standardError);
+            List<DataSeries> display = new ArrayList<>();
+            display.addAll(normalised);
+            display.addAll(emphasise);
+            return display;
+        }, "Indicates how unusually high/low a price is");
     }
 
-    public void updated() {
+    private static class Checkbox {
+        private Runnable remove = () -> {};
 
-    }
+        public Checkbox(BloomberrySpecialPanel panel, String name, boolean defaultSelected, Function<ItemModel, List<DataSeries>> generator, String tooltip) {
+            JCheckBox priceGraph = new JCheckBox(name, defaultSelected);
+            priceGraph.setToolTipText(tooltip);
+            panel.add(priceGraph);
 
-    private DataSelector getAnalysisSelector() {
-        return analysisBaseData.getModel().getElementAt(analysisBaseData.getSelectedIndex());
-    }
-
-    private TransformerType getTransformerType() {
-        return transformerType.getModel().getElementAt(transformerType.getSelectedIndex());
+            priceGraph.addActionListener(e -> {
+                if (priceGraph.isSelected()) {
+                    remove = panel.plugin.addGraph(generator, name);
+                } else {
+                    if(remove != null) remove.run();
+                    remove = null;
+                }
+            });
+        }
     }
 }
 

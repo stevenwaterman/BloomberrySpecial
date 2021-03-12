@@ -24,7 +24,7 @@ public enum DataSelector {
         return yValueExtractor.apply(datapoint).doubleValue();
     }
 
-    public List<Pair<Integer, Double>> getData(ItemModel itemModel) {
+    public List<DataPoint> getData(ItemModel itemModel) {
         return itemModel.getData().get(this);
     }
 
