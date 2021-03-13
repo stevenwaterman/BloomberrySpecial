@@ -90,8 +90,13 @@ public class BloomberrySpecialPlugin extends Plugin {
 		BloomberrySpecialGraphOverlay overlay = new BloomberrySpecialGraphOverlay(this, config, generator, name);
 		overlays.add(overlay);
 		overlayManager.add(overlay);
+
 		overlay.updated();
-		return () -> overlayManager.remove(overlay);
+
+		return () -> {
+			overlays.remove(overlay);
+			overlayManager.remove(overlay);
+		};
 	}
 
 	@Getter
@@ -142,7 +147,7 @@ public class BloomberrySpecialPlugin extends Plugin {
 
 	@Override
 	public void shutDown() {
-		overlayManager.clear();
+		overlays.forEach(overlay -> overlayManager.remove(overlay));
 	}
 
 	@Provides

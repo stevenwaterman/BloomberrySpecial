@@ -27,10 +27,10 @@ public abstract class Transformer {
     }
 
     public final List<DataSeries> getData(List<DataSeries> lines) {
-        assert inputCount == null || lines.size() == inputCount;
+        assert (inputCount == null && lines.size() > 0) || (inputCount != null && lines.size() == inputCount);
 //        if (cache == null)
             cache = transform(lines);
-        assert outputCount == null || cache.size() == outputCount;
+        assert (outputCount == null && cache.size() > 0) || (outputCount != null && cache.size() == outputCount);
         return cache;
     }
 
