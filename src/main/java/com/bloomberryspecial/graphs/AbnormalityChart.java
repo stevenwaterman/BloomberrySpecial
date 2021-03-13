@@ -1,12 +1,9 @@
 package com.bloomberryspecial.graphs;
 
-import com.bloomberryspecial.BloomberrySpecialConfig;
-import com.bloomberryspecial.DataSeries;
-import com.bloomberryspecial.ItemModel;
-import com.bloomberryspecial.transformers.Emphasise;
-import com.bloomberryspecial.transformers.MovingAvg;
-import com.bloomberryspecial.transformers.Subtract;
+import com.bloomberryspecial.*;
+import com.bloomberryspecial.transformers.*;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,14 +19,14 @@ public class AbnormalityChart extends BloomberrySpecialChartOverlay {
 
     @Override
     protected List<DataSeries> getSeries(ItemModel itemModel) {
-        DataSeries buyPrice = buyPriceSeries(itemModel);
-        DataSeries sellPrice = sellPriceSeries(itemModel);
-        List<DataSeries> margin = new Subtract().getData(buyPrice, sellPrice);
-        List<DataSeries> movingAvg = new MovingAvg(25).getData(margin);
-        List<DataSeries> emphasise = new Emphasise().getData(movingAvg);
+        DataSeries buyPrice = new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), buyColor, new BasicStroke(1f), DrawStyle.POINTS);
+        List<DataSeries> removedTrend = new NormaliseTrend().getData(buyPrice);
+        List<DataSeries> normalised = new NormalisePercentage().getData(removedTrend);
+        List<DataSeries> standardError = new StandardError().getData(normalised);
+        List<DataSeries> emphasise = new Every(new Emphasise()).getData(standardError);
 
         List<DataSeries> display = new ArrayList<>();
-        display.addAll(margin);
+        display.addAll(normalised);
         display.addAll(emphasise);
         return display;
     }

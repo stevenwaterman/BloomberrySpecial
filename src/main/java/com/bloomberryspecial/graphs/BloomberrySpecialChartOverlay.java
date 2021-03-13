@@ -123,37 +123,3 @@ public abstract class BloomberrySpecialChartOverlay extends Overlay {
         );
     }
 }
-
-//        new Checkbox(this, "Margin", false, itemModel -> {
-
-//        }, "Shows the margin between the buy and sell prices over time");
-//
-//        new Checkbox(this, "Daily", false, itemModel -> {
-//
-//        }, "Shows the buy price (%) vs time of day");
-//
-//        new Checkbox(this, "Weekly", false, itemModel -> {
-//        DataSeries buyPrice = new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), buyColor, new BasicStroke(1f), DrawStyle.POINTS);
-//        List<DataSeries> removedTrend = new NormaliseTrend().getData(buyPrice);
-//        List<DataSeries> daily = new Modulo(Modulo.ModuloPeriod.WEEK).getData(removedTrend);
-//        List<DataSeries> normalised = new Every(new NormalisePercentage()).getData(daily);
-//        List<DataSeries> movingAvg = new Every(new MovingAvg(25)).getData(normalised);
-//        List<DataSeries> combine = new CombineX().getData(movingAvg);
-//        List<DataSeries> emphasise = new Emphasise().getData(combine);
-//        List<DataSeries> display = new ArrayList<>();
-//        display.addAll(normalised);
-//        display.addAll(emphasise);
-//        return display;
-//        }, "Shows the buy price (%) vs day of week");
-//
-//        new Checkbox(this, "Abnormality", false, itemModel -> {
-//        DataSeries buyPrice = new DataSeries("Buy Price", DataSelector.BUY_PRICE.getData(itemModel), buyColor, new BasicStroke(1f), DrawStyle.POINTS);
-//        List<DataSeries> removedTrend = new NormaliseTrend().getData(buyPrice);
-//        List<DataSeries> normalised = new NormalisePercentage().getData(removedTrend);
-//        List<DataSeries> standardError = new StandardError().getData(normalised);
-//        List<DataSeries> emphasise = new Every(new Emphasise()).getData(standardError);
-//        List<DataSeries> display = new ArrayList<>();
-//        display.addAll(normalised);
-//        display.addAll(emphasise);
-//        return display;
-//        }, "Indicates how unusually high/low a price is");
