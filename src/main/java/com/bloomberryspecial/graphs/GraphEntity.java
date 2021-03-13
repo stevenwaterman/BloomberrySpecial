@@ -1,5 +1,9 @@
-package com.bloomberryspecial;
+package com.bloomberryspecial.graphs;
 
+import com.bloomberryspecial.BloomberrySpecialConfig;
+import com.bloomberryspecial.DataPoint;
+import com.bloomberryspecial.DataSeries;
+import com.bloomberryspecial.Range;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.overlay.components.PanelComponent;
 
@@ -17,11 +21,18 @@ public class GraphEntity extends PanelComponent {
     private final List<DataSeries> lines;
     private final String title;
 
-    public GraphEntity(BloomberrySpecialConfig config, List<DataSeries> lines, String title, Dimension preferredSize) {
+    private static final int marginTop = 20;
+    private static final int marginRight = 10;
+    private static final int marginBottom = 30;
+    private static final int marginLeft = 60;
+    private static final int markWidth = 5;
+    private static final int markHeight = 10;
+    private static final int pointSize = 2;
+
+    public GraphEntity(BloomberrySpecialConfig config, List<DataSeries> lines, String title) {
         this.config = config;
         this.lines = lines;
         this.title = title;
-        setPreferredSize(preferredSize);
     }
 
     @Override
@@ -43,7 +54,7 @@ public class GraphEntity extends PanelComponent {
         graphics.setColor(config.graphColor());
         graphics.setStroke(new BasicStroke(2f));
         graphics.drawRect(0, 0, getPreferredSize().width, getPreferredSize().height);
-        graphics.drawRect(config.marginLeft(), config.marginTop(), contentWidth(), contentHeight());
+        graphics.drawRect(marginLeft, marginTop, contentWidth(), contentHeight());
 
         // title
         FontMetrics metrics = graphics.getFontMetrics(graphics.getFont());
@@ -68,10 +79,10 @@ public class GraphEntity extends PanelComponent {
             graphics.drawString(label, x - metrics.stringWidth(label) + 10, getPreferredSize().height - 2);
 
             graphics.setStroke(new BasicStroke(2f));
-            graphics.drawLine(x, contentEndBottom(), x, contentEndBottom() + config.markHeight());
+            graphics.drawLine(x, contentEndBottom(), x, contentEndBottom() + markHeight);
 
             graphics.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, new float[]{5f}, 0f));
-            graphics.drawLine(x, contentEndBottom(), x, config.marginTop());
+            graphics.drawLine(x, contentEndBottom(), x, marginTop);
         });
 
         // y axis marks
@@ -102,13 +113,13 @@ public class GraphEntity extends PanelComponent {
             }
 
             int y = getYLocation(bounds.getFractionY(mark));
-            graphics.drawString(label, config.marginLeft() - config.markWidth() - metrics.stringWidth(label) - 2, y + metrics.getHeight() / 2);
+            graphics.drawString(label, marginLeft - markWidth - metrics.stringWidth(label) - 2, y + metrics.getHeight() / 2);
 
             graphics.setStroke(new BasicStroke(2f));
-            graphics.drawLine(config.marginLeft() - config.markWidth(), y, config.marginLeft(), y);
+            graphics.drawLine(marginLeft - markWidth, y, marginLeft, y);
 
             graphics.setStroke(new BasicStroke(1f));
-            graphics.drawLine(config.marginLeft(), y, contentEndRight(), y);
+            graphics.drawLine(marginLeft, y, contentEndRight(), y);
         });
     }
 
@@ -123,7 +134,7 @@ public class GraphEntity extends PanelComponent {
             int x = getXLocation(bounds.getFractionX(point.getX()));
             int y = getYLocation(bounds.getFractionY(point.getY()));
 
-            if (line.getDrawStyle().isPointsEnabled()) graphics.fillOval(x - config.pointSize() / 2, y - config.pointSize() / 2, config.pointSize(), config.pointSize());
+            if (line.getDrawStyle().isPointsEnabled()) graphics.fillOval(x - pointSize / 2, y - pointSize / 2, pointSize, pointSize);
             if (line.getDrawStyle().isLinesEnabled() && lastX != null) graphics.drawLine(lastX, lastY, x, y);
 
             lastX = x;
@@ -132,23 +143,23 @@ public class GraphEntity extends PanelComponent {
     }
 
     private int contentWidth() {
-        return getPreferredSize().width - config.marginLeft() - config.marginRight();
+        return getPreferredSize().width - marginLeft - marginRight;
     }
 
     private int contentHeight() {
-        return getPreferredSize().height - config.marginTop() - config.marginBottom();
+        return getPreferredSize().height - marginTop - marginBottom;
     }
 
     private int contentEndRight() {
-        return getPreferredSize().width - config.marginRight();
+        return getPreferredSize().width - marginRight;
     }
 
     private int contentEndBottom() {
-        return getPreferredSize().height - config.marginBottom();
+        return getPreferredSize().height - marginBottom;
     }
 
     private int getXLocation(double graphFraction) {
-        return (int) (config.marginLeft() + graphFraction * contentWidth());
+        return (int) (marginLeft + graphFraction * contentWidth());
     }
 
     private int getYLocation(double graphFraction) {

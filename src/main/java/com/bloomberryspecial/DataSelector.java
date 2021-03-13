@@ -10,13 +10,12 @@ import java.util.function.Function;
 
 @AllArgsConstructor
 public enum DataSelector {
-    BUY_PRICE(RLHistoricalDatapoint::getAvgHighPrice, BloomberrySpecialConfig::buyColor, false),
-    SELL_PRICE(RLHistoricalDatapoint::getAvgLowPrice, BloomberrySpecialConfig::sellColor, false),
-    BUY_VOLUME(RLHistoricalDatapoint::getHighPriceVolume, BloomberrySpecialConfig::buyColor, true),
-    SELL_VOLUME(RLHistoricalDatapoint::getLowPriceVolume, BloomberrySpecialConfig::sellColor, true);
+    BUY_PRICE(RLHistoricalDatapoint::getAvgHighPrice, false),
+    SELL_PRICE(RLHistoricalDatapoint::getAvgLowPrice, false),
+    BUY_VOLUME(RLHistoricalDatapoint::getHighPriceVolume, true),
+    SELL_VOLUME(RLHistoricalDatapoint::getLowPriceVolume, true);
 
     private final Function<RLHistoricalDatapoint, Integer> yValueExtractor;
-    private final Function<BloomberrySpecialConfig, Color> colorExtractor;
     @Getter
     private final boolean isZeroValid;
 
@@ -26,9 +25,5 @@ public enum DataSelector {
 
     public List<DataPoint> getData(ItemModel itemModel) {
         return itemModel.getData().get(this);
-    }
-
-    public Color getColor(BloomberrySpecialConfig config) {
-        return colorExtractor.apply(config);
     }
 }

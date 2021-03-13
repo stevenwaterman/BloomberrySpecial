@@ -1,5 +1,6 @@
 package com.bloomberryspecial;
 
+import com.bloomberryspecial.graphs.BloomberrySpecialChartOverlay;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
@@ -7,33 +8,33 @@ import com.google.inject.Singleton;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetClosed;
+import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
-import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
-import net.runelite.client.util.ImageUtil;
 import net.runelite.http.api.RuneLiteAPI;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
 
 import static net.runelite.api.VarPlayer.CURRENT_GE_ITEM;
 
@@ -48,10 +49,7 @@ public class BloomberrySpecialPlugin extends Plugin {
     @Getter
 	private BloomberrySpecialConfig config;
 
-	@Inject
-	private BloomberrySpecialPanel panel;
-
-	private List<BloomberrySpecialGraphOverlay> overlays = new ArrayList<>();
+	private Map<String, BloomberrySpecialChartOverlay> overlays = new HashMap<>();
 
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -73,46 +71,54 @@ public class BloomberrySpecialPlugin extends Plugin {
 						.build()))
 			.build();
 
-	@Override
-	protected void startUp() {
-		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "blurberry_special.png");
-		final NavigationButton button = NavigationButton.builder()
-				.tooltip("Bloomberry Special")
-				.priority(3)
-				.icon(icon)
-				.panel(panel)
-				.build();
-
-		clientToolbar.addNavigation(button);
-	}
-
-	public Runnable addGraph(Function<ItemModel, List<DataSeries>> generator, String name) {
-		BloomberrySpecialGraphOverlay overlay = new BloomberrySpecialGraphOverlay(this, config, generator, name);
-		overlays.add(overlay);
-		overlayManager.add(overlay);
-
-		overlay.updated();
-
-		return () -> {
-			overlays.remove(overlay);
-			overlayManager.remove(overlay);
-		};
-	}
-
 	@Getter
 	private ItemModel itemModel = null;
 
-	public void updated() {
-		overlays.forEach(BloomberrySpecialGraphOverlay::updated);
+	@Override
+	protected void startUp() throws Exception {
+		if (config.priceChart()) addOverlay("priceChart");
+		if (config.volumeChart()) addOverlay("volumeChart");
+		if (config.dailyChart()) addOverlay("dailyChart");
+		if (config.weeklyChart()) addOverlay("weeklyChart");
+		if (config.marginChart()) addOverlay("marginChart");
+		if (config.abnormalityChart()) addOverlay("abnormalityChart");
+	}
+
+	public void setItemModel(ItemModel itemModel) {
+		this.itemModel = itemModel;
+		overlays.values().forEach(overlay -> overlay.itemChanged(itemModel));
+	}
+
+	private void addOverlay(String name) {
+		BloomberrySpecialChartOverlay overlay = BloomberrySpecialChartOverlay.create(name, config);
+		overlay.itemChanged(itemModel);
+		overlays.put(name, overlay);
+		overlayManager.add(overlay);
+	}
+
+	private void removeOverlay(String name) {
+		BloomberrySpecialChartOverlay overlay = overlays.remove(name);
+		overlays.remove(name);
+		overlayManager.remove(overlay);
 	}
 
 	@Subscribe
-	public void onVarbitChanged(VarbitChanged event) throws Exception {
+	public void onConfigChanged(ConfigChanged configChanged) {
+		if (configChanged.getGroup().equals("BloomberrySpecial") && configChanged.getKey().endsWith("Chart")) {
+			if(configChanged.getNewValue().equals("true")) {
+				addOverlay(configChanged.getKey());
+			} else {
+				removeOverlay(configChanged.getKey());
+			}
+		}
+	}
+
+	@Subscribe
+	public void onVarbitChanged(VarbitChanged event) throws IOException {
 		if(event.getIndex() == CURRENT_GE_ITEM.getId()) {
 			int currentItem = client.getVar(CURRENT_GE_ITEM);
 			if (itemManager.canonicalize(currentItem) != currentItem || currentItem <= 0) {
-			    itemModel = null;
-			    updated();
+				setItemModel(null);
 			    return;
 			}
 
@@ -132,31 +138,24 @@ public class BloomberrySpecialPlugin extends Plugin {
 			final List<RLHistoricalDatapoint> data = RuneLiteAPI.GSON.fromJson(reader, type);
 
 			ItemComposition item = client.getItemDefinition(currentItem);
-			itemModel = new ItemModel(item, data);
-			updated();
+			setItemModel(new ItemModel(item, data));
 		}
 	}
 
 	@Subscribe
 	public void onWidgetClosed(WidgetClosed widgetClosed) {
 		if (widgetClosed.getGroupId() == 465) {
-			itemModel = null;
-			updated();
+		    setItemModel(null);
 		}
 	}
 
 	@Override
 	public void shutDown() {
-		overlays.forEach(overlay -> overlayManager.remove(overlay));
+		overlays.values().forEach(overlay -> overlayManager.remove(overlay));
 	}
 
 	@Provides
 	BloomberrySpecialConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(BloomberrySpecialConfig.class);
-	}
-
-	public void setConfig(String key, Object value) {
-		configManager.setConfiguration("BloomberrySpecial", key, value);
-		updated();
 	}
 }

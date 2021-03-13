@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public abstract class Transformer {
-    private List<DataSeries> cache = null;
     @Getter
     private final Integer inputCount;
     @Getter
@@ -27,11 +26,17 @@ public abstract class Transformer {
     }
 
     public final List<DataSeries> getData(List<DataSeries> lines) {
-        assert (inputCount == null && lines.size() > 0) || (inputCount != null && lines.size() == inputCount);
-//        if (cache == null)
-            cache = transform(lines);
-        assert (outputCount == null && cache.size() > 0) || (outputCount != null && cache.size() == outputCount);
-        return cache;
+        if((inputCount == null && lines.size() == 0) || (inputCount != null && lines.size() != inputCount)) {
+            return new ArrayList<>();
+        }
+
+        List<DataSeries> output = transform(lines);
+
+        if((outputCount == null && output.size() == 0) || (outputCount != null && output.size() != outputCount)) {
+            return new ArrayList<>();
+        }
+
+        return output;
     }
 
     public static List<List<DataPoint>> interpolate(List<List<DataPoint>> lines) {
